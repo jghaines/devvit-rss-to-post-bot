@@ -20,27 +20,47 @@ It tracks the "last post" checkpoint plus a dedupe window so feed reorder/edit n
 cp .env.example .env
 ```
 
-2. Edit `.env`:
+1. Edit `.env`:
+
 - Set `FEED_URL`
 - Set `TARGET_SUBREDDIT`
 - Keep `DRY_RUN=true` for initial validation
 
-3. Run local tests:
+1. Run local tests:
 
 ```bash
 npm test
 ```
 
-4. Run local CLI dry-run:
+1. Run local CLI dry-run:
 
 ```bash
 npm run local:test
 ```
 
-5. Run with deterministic test env:
+1. Run with deterministic test env:
 
 ```bash
 npm run local:test:env
+```
+
+1. Preview exactly what would be posted (no submit):
+
+```bash
+npm run local:preview:env
+```
+
+or with your own file/URL:
+
+```bash
+npm run local:preview -- --feed ./fixtures/sample-rss.xml
+npm run local:preview -- --feed https://example.com/feed.xml
+```
+
+For machine-readable output:
+
+```bash
+npm run local:preview -- --json
 ```
 
 ## .env credential injection

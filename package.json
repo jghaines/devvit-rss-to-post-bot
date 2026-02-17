@@ -9,6 +9,8 @@
     "test:watch": "node --test --watch tests/*.test.mjs",
     "local:test": "node scripts/local-poll.mjs --dry-run",
     "local:test:env": "ENV_FILE=.env.test node scripts/local-poll.mjs --dry-run",
+    "local:preview": "node scripts/local-preview.mjs",
+    "local:preview:env": "ENV_FILE=.env.test node scripts/local-preview.mjs",
     "local:live": "node scripts/local-poll.mjs --live",
     "devvit:playtest": "npx devvit playtest",
     "devvit:upload": "npx devvit upload"
