@@ -58,16 +58,32 @@ export async function fetchAccessToken({ env }) {
 }
 
 /**
- * @param {{ accessToken: string; subreddit: string; title: string; url: string; userAgent: string }} params
+ * @param {{
+ *   accessToken: string;
+ *   subreddit: string;
+ *   title: string;
+ *   url?: string;
+ *   text?: string;
+ *   postKind: "link" | "self";
+ *   userAgent: string;
+ * }} params
  */
-export async function submitLinkPost(params) {
+export async function submitRedditPost(params) {
   const body = new URLSearchParams({
     api_type: "json",
-    kind: "link",
+    kind: params.postKind,
     sr: params.subreddit,
     title: params.title,
-    url: params.url,
   });
+
+  if (params.postKind === "link") {
+    if (!params.url) {
+      throw new Error("Link post requested without url.");
+    }
+    body.set("url", params.url);
+  } else {
+    body.set("text", String(params.text || ""));
+  }
 
   const response = await fetch("https://oauth.reddit.com/api/submit", {
     method: "POST",

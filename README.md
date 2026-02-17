@@ -1,6 +1,6 @@
 # devvit-rss-to-post-bot
 
-Devvit bot that polls an RSS/Atom feed and submits new entries as Reddit link posts.
+Devvit bot that polls an RSS/Atom feed and submits new entries to Reddit.
 
 It tracks the "last post" checkpoint plus a dedupe window so feed reorder/edit noise does not repost old items.
 
@@ -9,6 +9,7 @@ It tracks the "last post" checkpoint plus a dedupe window so feed reorder/edit n
 - `src/main.js`: Devvit app entrypoint (scheduler + Reddit submit + Redis-backed state)
 - `src/core/bot-core.mjs`: pure posting/checkpoint logic (unit tested)
 - `src/core/rss-parse.mjs`: RSS/Atom parser
+- `src/core/post-render.mjs`: title/body rendering and HTML->Reddit Markdown conversion
 - `scripts/local-poll.mjs`: local CLI harness for dry-run or live submission
 - `tests/*.test.mjs`: local tests
 
@@ -24,6 +25,8 @@ cp .env.example .env
 
 - Set `FEED_URL`
 - Set `TARGET_SUBREDDIT`
+- Set `POST_KIND` (`self` or `link`)
+- Set `TITLE_PREFIX` for explicit titles
 - Keep `DRY_RUN=true` for initial validation
 
 1. Run local tests:
@@ -63,6 +66,14 @@ For machine-readable output:
 npm run local:preview -- --json
 ```
 
+## Title and body behavior
+
+- Title is always explicit: `TITLE_PREFIX + <rss item title>`
+- Body text comes from RSS `<description>` (or Atom `summary`/`content`)
+- Description HTML is converted into Reddit-compatible Markdown
+- In `POST_KIND=self`, body is submitted as post text
+- In `POST_KIND=link`, Reddit only receives title + URL (preview still shows converted body text)
+
 ## .env credential injection
 
 For local live submit testing (`npm run local:live`), set:
@@ -72,7 +83,7 @@ For local live submit testing (`npm run local:live`), set:
 - `REDDIT_REFRESH_TOKEN`
 - `REDDIT_USER_AGENT`
 
-The harness exchanges the refresh token for an access token and submits link posts through Reddit OAuth API.
+The harness exchanges the refresh token for an access token and submits either self or link posts through Reddit OAuth API.
 
 ## Devvit CLI testing
 
@@ -99,3 +110,4 @@ npm run devvit:upload
 
 - Local state is saved to `STATE_FILE` (default `.local-state.json`).
 - On each successful post, checkpoint state is updated immediately for crash safety.
+- Use `MAX_BODY_CHARS` to clip long description bodies before submit.

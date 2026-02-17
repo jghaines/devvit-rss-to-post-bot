@@ -13,6 +13,7 @@ test("parseFeedXml parses sample RSS fixture", () => {
   assert.equal(entries[0].id, "post-one");
   assert.equal(entries[0].title, "Post One");
   assert.equal(entries[0].url, "https://example.com/post-one");
+  assert.match(entries[0].descriptionHtml || "", /<strong>update<\/strong>/);
 });
 
 test("parseFeedXml parses Atom links with href attributes", () => {
@@ -32,4 +33,5 @@ test("parseFeedXml parses Atom links with href attributes", () => {
   assert.equal(entries[0].id, "alpha");
   assert.equal(entries[0].title, "Alpha Title");
   assert.equal(entries[0].url, "https://example.com/alpha");
+  assert.equal(entries[0].descriptionHtml, undefined);
 });

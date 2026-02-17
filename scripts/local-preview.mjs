@@ -7,6 +7,7 @@ import {
   fingerprintEntry,
   parseState,
 } from "../src/core/bot-core.mjs";
+import { renderEntryForReddit, resolvePostKind } from "../src/core/post-render.mjs";
 import { parseFeedXml } from "../src/core/rss-parse.mjs";
 import { loadEnvFile } from "./load-env.mjs";
 
@@ -22,6 +23,9 @@ const targetSubreddit = normalizeString(process.env.TARGET_SUBREDDIT) || "(unset
 const stateFile = path.resolve(process.cwd(), normalizeString(getArgValue(argv, "--state") || process.env.STATE_FILE) || ".local-state.json");
 const maxPostsPerRun = parsePositiveInt(getArgValue(argv, "--max-posts") || process.env.MAX_POSTS_PER_RUN, DEFAULT_MAX_POSTS_PER_RUN);
 const maxDedupeTrack = parsePositiveInt(process.env.MAX_DEDUPE_TRACK, DEFAULT_MAX_DEDUPE);
+const postKind = resolvePostKind(getArgValue(argv, "--post-kind") || process.env.POST_KIND);
+const titlePrefix = normalizeString(getArgValue(argv, "--title-prefix") || process.env.TITLE_PREFIX) || "[RSS] ";
+const maxBodyChars = parsePositiveInt(getArgValue(argv, "--max-body-chars") || process.env.MAX_BODY_CHARS, 12000);
 
 if (!feedUrl) {
   console.error("Missing FEED_URL. Set it in env or pass --feed <path-or-url>.");
@@ -38,14 +42,24 @@ const selected = chooseEntriesToPost({
   maxPostsPerRun,
 });
 
-const plan = selected.map((item, index) => ({
-  index: index + 1,
-  title: item.entry.title,
-  url: item.entry.url,
-  id: item.entry.id || null,
-  publishedAt: item.entry.publishedAt || null,
-  fingerprint: item.fingerprint || fingerprintEntry(item.entry),
-}));
+const plan = selected.map((item, index) => {
+  const rendered = renderEntryForReddit(item.entry, {
+    postKind,
+    titlePrefix,
+    maxBodyChars,
+  });
+  return {
+    index: index + 1,
+    postKind: rendered.postKind,
+    explicitTitle: rendered.title,
+    bodyText: rendered.bodyText,
+    sourceUrl: rendered.sourceUrl || null,
+    originalTitle: item.entry.title,
+    id: item.entry.id || null,
+    publishedAt: item.entry.publishedAt || null,
+    fingerprint: item.fingerprint || fingerprintEntry(item.entry),
+  };
+});
 
 if (jsonOutput) {
   console.log(
@@ -56,6 +70,9 @@ if (jsonOutput) {
         stateFile,
         maxPostsPerRun,
         maxDedupeTrack,
+        postKind,
+        titlePrefix,
+        maxBodyChars,
         parsedEntries: entries.length,
         checkpoint: state.checkpoint,
         dedupeCount: state.dedupe.length,
@@ -76,6 +93,9 @@ console.log(`Entries parsed: ${entries.length}`);
 console.log(`Checkpoint: ${state.checkpoint?.fingerprint || "(none)"}`);
 console.log(`Dedupe entries tracked: ${state.dedupe.length}`);
 console.log(`Max posts per run: ${maxPostsPerRun}`);
+console.log(`Post kind: ${postKind}`);
+console.log(`Title prefix: ${titlePrefix}`);
+console.log(`Max body chars: ${maxBodyChars}`);
 console.log(`Will post: ${plan.length}`);
 
 if (plan.length === 0) {
@@ -85,11 +105,15 @@ if (plan.length === 0) {
 
 for (const post of plan) {
   console.log("");
-  console.log(`#${post.index} ${post.title}`);
-  console.log(`  url: ${post.url}`);
+  console.log(`#${post.index}`);
+  console.log(`  title: ${post.explicitTitle}`);
+  console.log(`  sourceUrl: ${post.sourceUrl || "(none)"}`);
+  console.log(`  postKind: ${post.postKind}`);
   console.log(`  id: ${post.id || "(none)"}`);
   console.log(`  publishedAt: ${post.publishedAt || "(none)"}`);
   console.log(`  fingerprint: ${post.fingerprint}`);
+  console.log("  bodyText:");
+  console.log(indentBlock(post.bodyText || "(empty)", "    "));
 }
 
 /**
@@ -155,4 +179,16 @@ function parsePositiveInt(value, fallback) {
     return fallback;
   }
   return parsed;
+}
+
+/**
+ * @param {string} value
+ * @param {string} prefix
+ * @returns {string}
+ */
+function indentBlock(value, prefix) {
+  return String(value || "")
+    .split(/\r?\n/g)
+    .map((line) => `${prefix}${line}`)
+    .join("\n");
 }

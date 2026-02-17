@@ -9,6 +9,7 @@ export const DEFAULT_MAX_DEDUPE = 500;
  * @property {string} title
  * @property {string} url
  * @property {string | undefined} publishedAt
+ * @property {string | undefined} descriptionHtml
  */
 
 /**
@@ -78,6 +79,7 @@ export function normalizeEntries(entries) {
       title,
       url,
       publishedAt: normalizeString(item.publishedAt) || undefined,
+      descriptionHtml: normalizeString(item.descriptionHtml) || undefined,
     });
   }
 

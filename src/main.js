@@ -8,6 +8,7 @@ import {
   parseState,
   serializeState,
 } from "./core/bot-core.mjs";
+import { renderEntryForReddit } from "./core/post-render.mjs";
 import { parseFeedXml } from "./core/rss-parse.mjs";
 
 const JOB_NAME = "poll-rss-feed";
@@ -54,6 +55,27 @@ Devvit.addSettings([
     scope: "installation",
     isSecret: false,
   },
+  {
+    name: "postKind",
+    label: "Post kind: self or link",
+    type: "string",
+    scope: "installation",
+    isSecret: false,
+  },
+  {
+    name: "titlePrefix",
+    label: "Explicit title prefix",
+    type: "string",
+    scope: "installation",
+    isSecret: false,
+  },
+  {
+    name: "maxBodyChars",
+    label: "Maximum body length for self-post",
+    type: "number",
+    scope: "installation",
+    isSecret: false,
+  },
 ]);
 
 Devvit.addTrigger({
@@ -77,6 +99,9 @@ Devvit.addSchedulerJob({
     const targetSubreddit = normalizeString(await context.settings.get("targetSubreddit"));
     const maxPostsPerRun = parsePositiveInt(await context.settings.get("maxPostsPerRun"), DEFAULT_MAX_POSTS_PER_RUN);
     const maxDedupeTrack = parsePositiveInt(await context.settings.get("maxDedupeTrack"), DEFAULT_MAX_DEDUPE);
+    const postKind = normalizeString(await context.settings.get("postKind")) || "self";
+    const titlePrefix = normalizeString(await context.settings.get("titlePrefix")) || "[RSS] ";
+    const maxBodyChars = parsePositiveInt(await context.settings.get("maxBodyChars"), 12000);
 
     if (!feedUrl || !targetSubreddit) {
       console.log("Missing feedUrl or targetSubreddit setting. Skipping run.");
@@ -102,11 +127,25 @@ Devvit.addSchedulerJob({
     });
 
     for (const item of selected) {
-      await context.reddit.submitPost({
-        subredditName: targetSubreddit,
-        title: item.entry.title,
-        url: item.entry.url,
+      const rendered = renderEntryForReddit(item.entry, {
+        postKind,
+        titlePrefix,
+        maxBodyChars,
       });
+
+      if (rendered.postKind === "link") {
+        await context.reddit.submitPost({
+          subredditName: targetSubreddit,
+          title: rendered.title,
+          url: rendered.sourceUrl,
+        });
+      } else {
+        await context.reddit.submitPost({
+          subredditName: targetSubreddit,
+          title: rendered.title,
+          text: rendered.bodyText,
+        });
+      }
 
       state = applyPostedEntry(state, item, maxDedupeTrack);
       await context.redis.set(stateKey, serializeState(state, maxDedupeTrack));

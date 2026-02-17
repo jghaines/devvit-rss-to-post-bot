@@ -4,6 +4,7 @@
  * @property {string} title
  * @property {string} url
  * @property {string | undefined} publishedAt
+ * @property {string | undefined} descriptionHtml
  */
 
 /**
@@ -41,6 +42,7 @@ function parseRssItems(xml) {
     const link = cleanup(readTagText(block, "link"));
     const pubDate = cleanup(readTagText(block, "pubDate"));
     const dcDate = cleanup(readTagText(block, "dc:date"));
+    const descriptionHtml = cleanupHtml(readTagText(block, "description")) || cleanupHtml(readTagText(block, "content:encoded")) || undefined;
     const publishedAt = pubDate || dcDate || undefined;
 
     if (!title || !link) {
@@ -52,6 +54,7 @@ function parseRssItems(xml) {
       title,
       url: link,
       publishedAt,
+      descriptionHtml,
     });
   }
 
@@ -72,6 +75,9 @@ function parseAtomEntries(xml) {
     const id = cleanup(readTagText(block, "id"));
     const updated = cleanup(readTagText(block, "updated"));
     const published = cleanup(readTagText(block, "published"));
+    const summaryHtml = cleanupHtml(readTagText(block, "summary"));
+    const contentHtml = cleanupHtml(readTagText(block, "content"));
+    const descriptionHtml = summaryHtml || contentHtml || undefined;
     const publishedAt = updated || published || undefined;
     const link = findAtomLink(block);
 
@@ -84,6 +90,7 @@ function parseAtomEntries(xml) {
       title,
       url: cleanup(link),
       publishedAt,
+      descriptionHtml,
     });
   }
 
@@ -152,6 +159,14 @@ function readTagText(block, tag) {
  */
 function cleanup(value) {
   return decodeXmlEntities(stripCdata(stripTags(String(value || "")))).trim();
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function cleanupHtml(value) {
+  return stripCdata(String(value || "")).trim();
 }
 
 /**

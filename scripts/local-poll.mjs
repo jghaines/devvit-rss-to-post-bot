@@ -8,9 +8,10 @@ import {
   parseState,
   serializeState,
 } from "../src/core/bot-core.mjs";
+import { renderEntryForReddit, resolvePostKind } from "../src/core/post-render.mjs";
 import { parseFeedXml } from "../src/core/rss-parse.mjs";
 import { loadEnvFile } from "./load-env.mjs";
-import { fetchAccessToken, submitLinkPost, validateLiveCredentials } from "./reddit-live-submit.mjs";
+import { fetchAccessToken, submitRedditPost, validateLiveCredentials } from "./reddit-live-submit.mjs";
 
 const flags = new Set(process.argv.slice(2));
 const liveMode = flags.has("--live");
@@ -24,6 +25,9 @@ const targetSubreddit = normalizeString(process.env.TARGET_SUBREDDIT);
 const stateFile = path.resolve(process.cwd(), normalizeString(process.env.STATE_FILE) || ".local-state.json");
 const maxPostsPerRun = parsePositiveInt(process.env.MAX_POSTS_PER_RUN, DEFAULT_MAX_POSTS_PER_RUN);
 const maxDedupeTrack = parsePositiveInt(process.env.MAX_DEDUPE_TRACK, DEFAULT_MAX_DEDUPE);
+const postKind = resolvePostKind(process.env.POST_KIND);
+const titlePrefix = normalizeString(process.env.TITLE_PREFIX) || "[RSS] ";
+const maxBodyChars = parsePositiveInt(process.env.MAX_BODY_CHARS, 12000);
 
 if (!feedUrl || !targetSubreddit) {
   console.error("FEED_URL and TARGET_SUBREDDIT are required.");
@@ -59,17 +63,31 @@ if (!dryRun) {
 
 let nextState = state;
 for (const item of selected) {
+  const rendered = renderEntryForReddit(item.entry, {
+    postKind,
+    titlePrefix,
+    maxBodyChars,
+  });
+
   if (dryRun) {
-    console.log(`[DRY RUN] Would submit: "${item.entry.title}" -> ${item.entry.url}`);
+    console.log(`[DRY RUN] Would submit ${rendered.postKind} post`);
+    console.log(`  title: ${rendered.title}`);
+    console.log(`  url: ${rendered.sourceUrl || "(none)"}`);
+    if (rendered.bodyText) {
+      const preview = rendered.bodyText.length > 300 ? `${rendered.bodyText.slice(0, 300)}...` : rendered.bodyText;
+      console.log(`  body preview:\n${indentBlock(preview, "    ")}`);
+    }
   } else {
-    await submitLinkPost({
+    await submitRedditPost({
       accessToken,
       subreddit: targetSubreddit,
-      title: item.entry.title,
-      url: item.entry.url,
+      title: rendered.title,
+      postKind: rendered.postKind,
+      url: rendered.sourceUrl,
+      text: rendered.bodyText,
       userAgent: String(process.env.REDDIT_USER_AGENT),
     });
-    console.log(`Submitted: "${item.entry.title}" -> ${item.entry.url}`);
+    console.log(`Submitted ${rendered.postKind}: "${rendered.title}"`);
   }
 
   nextState = applyPostedEntry(nextState, item, maxDedupeTrack);
@@ -139,4 +157,16 @@ function parsePositiveInt(value, fallback) {
     return fallback;
   }
   return parsed;
+}
+
+/**
+ * @param {string} value
+ * @param {string} prefix
+ * @returns {string}
+ */
+function indentBlock(value, prefix) {
+  return String(value || "")
+    .split(/\r?\n/g)
+    .map((line) => `${prefix}${line}`)
+    .join("\n");
 }
