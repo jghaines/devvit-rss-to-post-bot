@@ -87,6 +87,12 @@ The harness exchanges the refresh token for an access token and submits either s
 
 ## Devvit CLI testing
 
+Prepare config from template:
+
+```bash
+cp devvit.json.example devvit.json
+```
+
 If Devvit CLI is not installed:
 
 ```bash
@@ -105,6 +111,37 @@ and upload with:
 ```bash
 npm run devvit:upload
 ```
+
+Before upload, verify `devvit-rss-to-post-bot/devvit.json`:
+
+- `name` is globally unique
+- `permissions.http.domains` includes your RSS host (exact hostname, no protocol)
+
+## Local feed -> self-post test
+
+Preview exactly what would be posted (no Reddit submit):
+
+```bash
+POST_KIND=self \
+FEED_URL=./fixtures/6HKOhNgS.rss.xml \
+TARGET_SUBREDDIT=YourSubreddit \
+STATE_FILE=.tmp/selfpost-test.json \
+MAX_POSTS_PER_RUN=1 \
+npm run local:preview
+```
+
+Submit a real self-post to Reddit (uses OAuth creds from `.env`):
+
+```bash
+POST_KIND=self \
+FEED_URL=./fixtures/6HKOhNgS.rss.xml \
+TARGET_SUBREDDIT=YourSubreddit \
+STATE_FILE=.tmp/selfpost-live-test.json \
+MAX_POSTS_PER_RUN=1 \
+npm run local:live
+```
+
+Recommended: use a dedicated test subreddit and a fresh `STATE_FILE` for each live test run.
 
 ## Notes
 

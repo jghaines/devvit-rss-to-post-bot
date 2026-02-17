@@ -1,0 +1,17 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "rss-to-reddit-post-bot",
+  "blocks": {
+    "entry": "src/main.js"
+  },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": [
+        "feeds.simplecast.com"
+      ]
+    },
+    "redis": true,
+    "reddit": true
+  }
+}
