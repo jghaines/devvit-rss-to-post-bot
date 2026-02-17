@@ -15,6 +15,12 @@ It tracks the "last post" checkpoint plus a dedupe window so feed reorder/edit n
 
 ## Local setup
 
+1. Install dependencies:
+
+```bash
+npm install
+```
+
 1. Copy env template:
 
 ```bash
@@ -24,7 +30,7 @@ cp .env.example .env
 1. Edit `.env`:
 
 - Set `FEED_URL`
-- Set `TARGET_SUBREDDIT`
+- Set `TARGET_SUBREDDIT` (for profile posts, use `u_<your_username>`)
 - Set `POST_KIND` (`self` or `link`)
 - Set `TITLE_PREFIX` for explicit titles
 - Keep `DRY_RUN=true` for initial validation
@@ -71,19 +77,25 @@ npm run local:preview -- --json
 - Title is always explicit: `TITLE_PREFIX + <rss item title>`
 - Body text comes from RSS `<description>` (or Atom `summary`/`content`)
 - Description HTML is converted into Reddit-compatible Markdown
-- In `POST_KIND=self`, body is submitted as post text
+- In `POST_KIND=self`, body is submitted as post text (this is post format, not destination)
 - In `POST_KIND=link`, Reddit only receives title + URL (preview still shows converted body text)
+- Destination always comes from `TARGET_SUBREDDIT` (`MySubreddit` or `u_<your_username>`)
 
 ## .env credential injection
 
-For local live submit testing (`npm run local:live`), set:
+For local live submit testing (`npm run local:live`), authenticate with Devvit CLI:
 
-- `REDDIT_CLIENT_ID`
-- `REDDIT_CLIENT_SECRET`
-- `REDDIT_REFRESH_TOKEN`
-- `REDDIT_USER_AGENT`
+```bash
+npx devvit login
+```
 
-The harness exchanges the refresh token for an access token and submits either self or link posts through Reddit OAuth API.
+The local runner reads access credentials from `~/.devvit/token` (or `DEVVIT_TOKEN_FILE`).
+Optional env vars:
+
+- `DEVVIT_TOKEN_FILE` (default `~/.devvit/token`)
+- `REDDIT_USER_AGENT` (optional override)
+
+If the token file is missing or expired, `npm run local:live` exits with a clear auth error and a login hint.
 
 ## Devvit CLI testing
 
@@ -93,12 +105,22 @@ Prepare config from template:
 cp devvit.json.example devvit.json
 ```
 
-If Devvit CLI is not installed:
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Authenticate with Reddit through Devvit CLI:
+
+```bash
 npx devvit login
 ```
+
+The login flow opens a Reddit auth URL in your browser. After approval, you should see output like:
+
+- `Your Devvit authentication token has been saved to /Users/<you>/.devvit/token`
+- `Logged in as <your_reddit_username>`
 
 Then run:
 
@@ -124,18 +146,18 @@ Preview exactly what would be posted (no Reddit submit):
 ```bash
 POST_KIND=self \
 FEED_URL=./fixtures/6HKOhNgS.rss.xml \
-TARGET_SUBREDDIT=YourSubreddit \
+TARGET_SUBREDDIT=u_yourusername \
 STATE_FILE=.tmp/selfpost-test.json \
 MAX_POSTS_PER_RUN=1 \
 npm run local:preview
 ```
 
-Submit a real self-post to Reddit (uses OAuth creds from `.env`):
+Submit a real self-post to Reddit (uses `~/.devvit/token` from Devvit CLI login):
 
 ```bash
 POST_KIND=self \
 FEED_URL=./fixtures/6HKOhNgS.rss.xml \
-TARGET_SUBREDDIT=YourSubreddit \
+TARGET_SUBREDDIT=u_yourusername \
 STATE_FILE=.tmp/selfpost-live-test.json \
 MAX_POSTS_PER_RUN=1 \
 npm run local:live

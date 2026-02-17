@@ -1,71 +1,74 @@
-/**
- * @param {NodeJS.ProcessEnv} env
- */
-export function validateLiveCredentials(env) {
-  const missing = [];
-  if (!env.REDDIT_CLIENT_ID) {
-    missing.push("REDDIT_CLIENT_ID");
-  }
-  if (!env.REDDIT_CLIENT_SECRET) {
-    missing.push("REDDIT_CLIENT_SECRET");
-  }
-  if (!env.REDDIT_REFRESH_TOKEN) {
-    missing.push("REDDIT_REFRESH_TOKEN");
-  }
-  if (!env.REDDIT_USER_AGENT) {
-    missing.push("REDDIT_USER_AGENT");
-  }
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-  if (missing.length > 0) {
-    throw new Error(`Missing required live credentials: ${missing.join(", ")}`);
-  }
-}
+const DEFAULT_TOKEN_FILE = "~/.devvit/token";
+const DEFAULT_USER_AGENT = "devvit-rss-to-post-bot/0.1";
 
 /**
- * @param {{ env: NodeJS.ProcessEnv }} params
- * @returns {Promise<string>}
+ * @param {{ env: NodeJS.ProcessEnv; nowMs?: number }} params
+ * @returns {{ accessToken: string; tokenType: string; expiresAt: number; scope: string; tokenFile: string }}
  */
-export async function fetchAccessToken({ env }) {
-  validateLiveCredentials(env);
+export function getDevvitAccessToken(params) {
+  const env = params.env || process.env;
+  const nowMs = Number.isFinite(params.nowMs) ? Number(params.nowMs) : Date.now();
+  const tokenFileRaw = String(env.DEVVIT_TOKEN_FILE || DEFAULT_TOKEN_FILE);
+  const tokenFile = resolveUserPath(tokenFileRaw);
 
-  const auth = Buffer.from(`${env.REDDIT_CLIENT_ID}:${env.REDDIT_CLIENT_SECRET}`).toString("base64");
-  const body = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: String(env.REDDIT_REFRESH_TOKEN),
-  });
-
-  const response = await fetch("https://www.reddit.com/api/v1/access_token", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": String(env.REDDIT_USER_AGENT),
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Failed to fetch access token (${response.status}): ${text}`);
+  if (!fs.existsSync(tokenFile)) {
+    throw new Error(
+      `Devvit token file not found at ${tokenFile}. Run "npx devvit login" or set DEVVIT_TOKEN_FILE.`
+    );
   }
 
-  const json = await response.json();
-  if (!json?.access_token) {
-    throw new Error("No access_token returned by Reddit OAuth endpoint.");
+  const raw = fs.readFileSync(tokenFile, "utf8");
+  /** @type {{ token?: string }} */
+  let wrapper;
+  try {
+    wrapper = JSON.parse(raw);
+  } catch {
+    throw new Error(`Invalid JSON in Devvit token file: ${tokenFile}`);
   }
 
-  return String(json.access_token);
+  const encoded = String(wrapper?.token || "").trim();
+  if (!encoded) {
+    throw new Error(`Devvit token file does not contain a token value: ${tokenFile}`);
+  }
+
+  const decoded = decodeDevvitTokenEnvelope(encoded);
+  const accessToken = String(decoded.accessToken || "").trim();
+  const tokenType = String(decoded.tokenType || "bearer").trim() || "bearer";
+  const expiresAt = Number(decoded.expiresAt || 0);
+  const scope = String(decoded.scope || "").trim();
+
+  if (!accessToken) {
+    throw new Error(`Devvit token file is missing accessToken: ${tokenFile}`);
+  }
+  if (!Number.isFinite(expiresAt) || expiresAt < nowMs + 30_000) {
+    throw new Error(
+      `Devvit access token is expired or near expiry. Re-run "npx devvit login" to refresh ~/.devvit/token.`
+    );
+  }
+
+  return {
+    accessToken,
+    tokenType,
+    expiresAt,
+    scope,
+    tokenFile,
+  };
 }
 
 /**
  * @param {{
  *   accessToken: string;
+ *   tokenType?: string;
  *   subreddit: string;
  *   title: string;
  *   url?: string;
  *   text?: string;
  *   postKind: "link" | "self";
- *   userAgent: string;
+ *   userAgent?: string;
  * }} params
  */
 export async function submitRedditPost(params) {
@@ -88,9 +91,9 @@ export async function submitRedditPost(params) {
   const response = await fetch("https://oauth.reddit.com/api/submit", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${params.accessToken}`,
+      Authorization: `${normalizeTokenType(params.tokenType)} ${params.accessToken}`,
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": params.userAgent,
+      "User-Agent": String(params.userAgent || DEFAULT_USER_AGENT),
     },
     body,
   });
@@ -105,4 +108,47 @@ export async function submitRedditPost(params) {
   if (Array.isArray(errors) && errors.length > 0) {
     throw new Error(`Reddit submit errors: ${JSON.stringify(errors)}`);
   }
+}
+
+/**
+ * @param {string} encoded
+ * @returns {{ accessToken?: string; tokenType?: string; expiresAt?: number; scope?: string; refreshToken?: string }}
+ */
+function decodeDevvitTokenEnvelope(encoded) {
+  const normalized = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4 || 4)) % 4);
+  const decodedRaw = Buffer.from(padded, "base64").toString("utf8");
+
+  try {
+    return JSON.parse(decodedRaw);
+  } catch {
+    throw new Error("Could not decode token payload from ~/.devvit/token. Try re-running `npx devvit login`.");
+  }
+}
+
+/**
+ * @param {string | undefined} tokenType
+ * @returns {string}
+ */
+function normalizeTokenType(tokenType) {
+  const normalized = String(tokenType || "bearer").trim();
+  if (!normalized) {
+    return "bearer";
+  }
+  return normalized.toLowerCase() === "bearer" ? "Bearer" : normalized;
+}
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+function resolveUserPath(value) {
+  const raw = String(value || "").trim();
+  if (raw === "~") {
+    return os.homedir();
+  }
+  if (raw.startsWith("~/")) {
+    return path.join(os.homedir(), raw.slice(2));
+  }
+  return path.resolve(raw);
 }
