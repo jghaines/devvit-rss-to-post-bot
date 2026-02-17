@@ -75,6 +75,7 @@ npm run local:preview -- --json
 ## Title and body behavior
 
 - Title is always explicit: `TITLE_PREFIX + <rss item title>`
+- Title is automatically clipped for Reddit-safe submission (300 chars by default)
 - Body text comes from RSS `<description>` (or Atom `summary`/`content`)
 - Description HTML is converted into Reddit-compatible Markdown
 - In `POST_KIND=self`, body is submitted as post text (this is post format, not destination)
@@ -136,8 +137,15 @@ npm run devvit:upload
 
 Before upload, verify `devvit-rss-to-post-bot/devvit.json`:
 
-- `name` is globally unique
+- `name` is globally unique and at most 16 characters
 - `permissions.http.domains` includes your RSS host (exact hostname, no protocol)
+
+Set runtime values after install/playtest in app installation settings:
+
+- `feedUrl`
+- `targetSubreddit`
+- `pollMinutes` (set `60` for hourly)
+- `maxPostsPerRun` (set `1` for safer initial rollout)
 
 ## Local feed -> self-post test
 
@@ -170,3 +178,9 @@ Recommended: use a dedicated test subreddit and a fresh `STATE_FILE` for each li
 - Local state is saved to `STATE_FILE` (default `.local-state.json`).
 - On each successful post, checkpoint state is updated immediately for crash safety.
 - Use `MAX_BODY_CHARS` to clip long description bodies before submit.
+
+## Fetch Domains
+
+The app requests the following external HTTP fetch domain:
+
+- `feeds.simplecast.com` - reads the configured RSS feed for polling and post generation.

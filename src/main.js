@@ -15,8 +15,11 @@ const JOB_NAME = "poll-rss-feed";
 
 Devvit.configure({
   redis: true,
-  http: true,
+  http: {
+    domains: ["feeds.simplecast.com"],
+  },
   redditAPI: true,
+  scheduler: true,
 });
 
 Devvit.addSettings([
@@ -96,15 +99,19 @@ Devvit.addSchedulerJob({
   name: JOB_NAME,
   onRun: async (_, context) => {
     const feedUrl = normalizeString(await context.settings.get("feedUrl"));
-    const targetSubreddit = normalizeString(await context.settings.get("targetSubreddit"));
+    const targetSubreddit = normalizeSubredditName(await context.settings.get("targetSubreddit"));
     const maxPostsPerRun = parsePositiveInt(await context.settings.get("maxPostsPerRun"), DEFAULT_MAX_POSTS_PER_RUN);
     const maxDedupeTrack = parsePositiveInt(await context.settings.get("maxDedupeTrack"), DEFAULT_MAX_DEDUPE);
     const postKind = normalizeString(await context.settings.get("postKind")) || "self";
     const titlePrefix = normalizeString(await context.settings.get("titlePrefix")) || "[RSS] ";
     const maxBodyChars = parsePositiveInt(await context.settings.get("maxBodyChars"), 12000);
 
+    console.log(
+      `[${JOB_NAME}] run started target=${targetSubreddit || "(empty)"} maxPostsPerRun=${maxPostsPerRun} postKind=${postKind}`
+    );
+
     if (!feedUrl || !targetSubreddit) {
-      console.log("Missing feedUrl or targetSubreddit setting. Skipping run.");
+      console.log(`[${JOB_NAME}] Missing feedUrl or targetSubreddit setting. Skipping run.`);
       return;
     }
 
@@ -112,19 +119,21 @@ Devvit.addSchedulerJob({
     const rawState = await context.redis.get(stateKey);
     let state = parseState(rawState || "");
 
-    const response = await context.http.fetch(feedUrl);
+    const response = await fetchFeed(context, feedUrl);
     if (!response.ok) {
       throw new Error(`Feed request failed with status ${response.status}`);
     }
 
     const xml = await response.text();
     const entries = parseFeedXml(xml);
+    console.log(`[${JOB_NAME}] Parsed entries=${entries.length}`);
     const selected = chooseEntriesToPost({
       entries,
       checkpoint: state.checkpoint,
       dedupe: state.dedupe,
       maxPostsPerRun,
     });
+    console.log(`[${JOB_NAME}] Selected entries=${selected.length}`);
 
     for (const item of selected) {
       const rendered = renderEntryForReddit(item.entry, {
@@ -149,16 +158,25 @@ Devvit.addSchedulerJob({
 
       state = applyPostedEntry(state, item, maxDedupeTrack);
       await context.redis.set(stateKey, serializeState(state, maxDedupeTrack));
+      console.log(`[${JOB_NAME}] Posted fingerprint=${item.fingerprint}`);
     }
   },
 });
 
 async function schedulePollingJob(context) {
   const pollMinutes = clamp(parsePositiveInt(await context.settings.get("pollMinutes"), 15), 1, 60);
+  const cron = buildPollingCron(pollMinutes);
+  console.log(`[${JOB_NAME}] Scheduling with cron=${cron}`);
   await context.scheduler.runJob({
     name: JOB_NAME,
-    cron: `*/${pollMinutes} * * * *`,
+    cron,
   });
+  const warmupAt = new Date(Date.now() + 15_000);
+  await context.scheduler.runJob({
+    name: JOB_NAME,
+    runAt: warmupAt,
+  });
+  console.log(`[${JOB_NAME}] Scheduled warm-up run at ${warmupAt.toISOString()}`);
 }
 
 function buildStateKey(feedUrl, subreddit) {
@@ -182,6 +200,37 @@ function normalizeString(value) {
     return "";
   }
   return String(value).trim();
+}
+
+function normalizeSubredditName(value) {
+  let text = normalizeString(value);
+  if (!text) {
+    return "";
+  }
+
+  text = text.replace(/^\/?r\//i, "");
+
+  const userMatch = text.match(/^\/?u\/(.+)$/i);
+  if (userMatch) {
+    text = `u_${String(userMatch[1] || "").trim()}`;
+  }
+
+  return text.trim();
+}
+
+export function buildPollingCron(pollMinutes) {
+  if (pollMinutes >= 60) {
+    return "0 * * * *";
+  }
+  return `*/${pollMinutes} * * * *`;
+}
+
+async function fetchFeed(context, url) {
+  const httpFetch = context?.http?.fetch;
+  if (typeof httpFetch === "function") {
+    return httpFetch(url);
+  }
+  return fetch(url);
 }
 
 export default Devvit;

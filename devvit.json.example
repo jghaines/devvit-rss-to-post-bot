@@ -1,8 +1,12 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "rss-to-reddit-post-bot",
+  "name": "rsspostbot",
   "blocks": {
-    "entry": "src/main.js"
+    "entry": "src/main.js",
+    "triggers": [
+      "onAppInstall",
+      "onAppUpgrade"
+    ]
   },
   "permissions": {
     "http": {

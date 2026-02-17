@@ -1,4 +1,5 @@
 const DEFAULT_TITLE_PREFIX = "[RSS] ";
+const DEFAULT_MAX_TITLE_CHARS = 300;
 const DEFAULT_MAX_BODY_CHARS = 12000;
 
 /**
@@ -15,15 +16,17 @@ const DEFAULT_MAX_BODY_CHARS = 12000;
 
 /**
  * @param {{ title: string; url: string; descriptionHtml?: string }} entry
- * @param {{ titlePrefix?: string; postKind?: string; maxBodyChars?: number }} options
+ * @param {{ titlePrefix?: string; postKind?: string; maxTitleChars?: number; maxBodyChars?: number }} options
  * @returns {RenderedPost}
  */
 export function renderEntryForReddit(entry, options = {}) {
   const titlePrefix = String(options.titlePrefix ?? DEFAULT_TITLE_PREFIX);
   const postKind = resolvePostKind(options.postKind);
+  const maxTitleChars = parsePositiveInt(options.maxTitleChars, DEFAULT_MAX_TITLE_CHARS);
   const maxBodyChars = parsePositiveInt(options.maxBodyChars, DEFAULT_MAX_BODY_CHARS);
 
   const explicitTitle = buildExplicitTitle(titlePrefix, String(entry.title || "").trim());
+  const safeTitle = clipText(explicitTitle || String(entry.title || "").trim(), maxTitleChars);
   const descriptionMarkdown = htmlToRedditMarkdown(String(entry.descriptionHtml || ""));
   const sourceUrl = String(entry.url || "").trim();
 
@@ -37,7 +40,7 @@ export function renderEntryForReddit(entry, options = {}) {
   const bodyText = clipText(bodyParts.join("\n\n"), maxBodyChars);
 
   return {
-    title: explicitTitle || String(entry.title || "").trim(),
+    title: safeTitle,
     bodyText,
     postKind,
     sourceUrl,

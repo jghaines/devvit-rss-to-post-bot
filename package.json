@@ -1,6 +1,6 @@
 {
-  "name": "devvit-rss-to-post-bot",
-  "version": "0.1.0",
+  "name": "rss-post-bot",
+  "version": "0.0.0",
   "private": true,
   "description": "Devvit RSS-to-link-post bot with checkpoint tracking and local CLI harness.",
   "type": "module",
@@ -16,10 +16,11 @@
     "devvit:upload": "npx devvit upload"
   },
   "dependencies": {
-    "@devvit/public-api": "^0.12.0"
+    "@devvit/public-api": "0.12.12"
   },
   "devDependencies": {
-    "@devvit/test": "^0.12.0",
+    "@devvit/test": "0.12.12",
     "vitest": "^2.1.8"
-  }
+  },
+  "license": "BSD-3-Clause"
 }

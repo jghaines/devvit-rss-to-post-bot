@@ -1,7 +1,7 @@
 import { makeAPIClients } from "@devvit/public-api/apis/makeAPIClients.js";
 import { createDevvitTest } from "@devvit/test/server/vitest";
 import { expect, vi } from "vitest";
-import App from "../src/main.js";
+import App, { buildPollingCron } from "../src/main.js";
 import { hashText } from "../src/core/bot-core.mjs";
 
 const JOB_NAME = "poll-rss-feed";
@@ -37,6 +37,11 @@ const test = createDevvitTest({
     titlePrefix: TITLE_PREFIX,
     maxBodyChars: 12000,
   },
+});
+
+test("buildPollingCron maps 60 minutes to top-of-hour cron", () => {
+  expect(buildPollingCron(15)).toBe("*/15 * * * *");
+  expect(buildPollingCron(60)).toBe("0 * * * *");
 });
 
 test("poll-rss-feed posts once and is idempotent on rerun", async ({ config, mocks }) => {

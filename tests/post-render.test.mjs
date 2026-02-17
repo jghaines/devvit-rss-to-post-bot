@@ -43,3 +43,22 @@ test("resolvePostKind defaults unsupported values to self", () => {
   assert.equal(resolvePostKind("self"), "self");
   assert.equal(resolvePostKind("weird"), "self");
 });
+
+test("renderEntryForReddit clips title to maxTitleChars", () => {
+  const rendered = renderEntryForReddit(
+    {
+      title: "This title is intentionally very long for clipping verification",
+      url: "https://example.com/notes",
+      descriptionHtml: "<p>Body.</p>",
+    },
+    {
+      postKind: "self",
+      titlePrefix: "[Episode] ",
+      maxTitleChars: 30,
+      maxBodyChars: 1000,
+    }
+  );
+
+  assert.equal(rendered.title.length <= 30, true);
+  assert.equal(rendered.title.endsWith("…"), true);
+});
