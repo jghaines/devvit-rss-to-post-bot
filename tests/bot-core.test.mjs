@@ -43,6 +43,20 @@ test("chooseEntriesToPost selects only entries after checkpoint", () => {
   assert.equal(selected[0].entry.id, "c");
 });
 
+test("chooseEntriesToPost on first run selects newest maxPostsPerRun entries", () => {
+  const selected = chooseEntriesToPost({
+    entries: FEED,
+    checkpoint: null,
+    dedupe: [],
+    maxPostsPerRun: 2,
+  });
+
+  assert.deepEqual(
+    selected.map((item) => item.entry.id),
+    ["b", "c"]
+  );
+});
+
 test("chooseEntriesToPost skips dedupe fingerprints", () => {
   const dedupe = [fingerprintEntry(FEED[0]), fingerprintEntry(FEED[1])];
   const selected = chooseEntriesToPost({

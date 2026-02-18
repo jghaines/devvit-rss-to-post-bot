@@ -176,6 +176,7 @@ Recommended: use a dedicated test subreddit and a fresh `STATE_FILE` for each li
 ## Notes
 
 - Local state is saved to `STATE_FILE` (default `.local-state.json`).
+- On first run (no checkpoint yet), the bot posts only the newest `MAX_POSTS_PER_RUN` entries, not the entire feed history.
 - On each successful post, checkpoint state is updated immediately for crash safety.
 - Use `MAX_BODY_CHARS` to clip long description bodies before submit.
 

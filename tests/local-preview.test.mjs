@@ -32,8 +32,8 @@ test("local preview prints post plan details", () => {
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /Will post: 2/);
-  assert.match(result.stdout, /title: \[RSS\] Post One/);
   assert.match(result.stdout, /title: \[RSS\] Post Two/);
+  assert.match(result.stdout, /title: \[RSS\] Post Three/);
   assert.match(result.stdout, /bodyText:/);
   assert.match(result.stdout, /fingerprint:/);
 });

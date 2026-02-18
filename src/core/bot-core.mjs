@@ -132,7 +132,8 @@ export function chooseEntriesToPost(params) {
   const checkpoint = params.checkpoint ?? null;
   const dedupeSet = new Set(Array.isArray(params.dedupe) ? params.dedupe : []);
   const maxPostsPerRun = parsePositiveInt(params.maxPostsPerRun, DEFAULT_MAX_POSTS_PER_RUN);
-  const startIndex = findStartIndex(entries, checkpoint);
+  const startIndex =
+    checkpoint == null ? Math.max(0, entries.length - maxPostsPerRun) : findStartIndex(entries, checkpoint);
 
   /** @type {{ entry: FeedEntry; fingerprint: string }[]} */
   const selected = [];
