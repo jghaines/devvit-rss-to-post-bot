@@ -22,5 +22,5 @@
     "@devvit/test": "0.12.13",
     "vitest": "4.0.18"
   },
-  "license": "BSD-3-Clause"
+  "license": "0BSD"
 }
