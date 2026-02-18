@@ -1,5 +1,7 @@
 # devvit-rss-to-post-bot
 
+[![CI](https://github.com/jghaines/devvit-rss-to-post-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/jghaines/devvit-rss-to-post-bot/actions/workflows/ci.yml)
+
 Devvit bot that polls an RSS/Atom feed and submits new entries to Reddit.
 
 It tracks the "last post" checkpoint plus a dedupe window so feed reorder/edit noise does not repost old items.
