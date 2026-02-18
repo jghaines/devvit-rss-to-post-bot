@@ -1,0 +1,56 @@
+name: NPM Maintenance
+
+on:
+  schedule:
+    - cron: "0 13 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: npm-maintenance
+  cancel-in-progress: false
+
+jobs:
+  update-all-dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install current dependencies
+        run: npm ci
+
+      - name: Upgrade all npm dependencies to latest
+        run: npx --yes npm-check-updates@latest --target latest --upgrade --dep prod,dev,optional,peer
+
+      - name: Regenerate lockfile and install updated dependencies
+        run: npm install
+
+      - name: Run test suite against updated dependencies
+        run: npm test
+
+      - name: Create pull request with dependency updates
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: codex/npm-maintenance
+          delete-branch: true
+          commit-message: "chore(deps): update all npm dependencies"
+          title: "chore(deps): update all npm dependencies"
+          body: |
+            Automated weekly dependency maintenance.
+
+            This PR updates all npm dependencies in `package.json` and refreshes `package-lock.json`,
+            then runs the test suite in CI.
+          labels: |
+            dependencies
+            automated
