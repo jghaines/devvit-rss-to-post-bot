@@ -16,11 +16,11 @@
     "devvit:upload": "npx devvit upload"
   },
   "dependencies": {
-    "@devvit/public-api": "0.12.13"
+    "@devvit/public-api": "0.12.14"
   },
   "devDependencies": {
-    "@devvit/test": "0.12.13",
-    "vitest": "4.0.18"
+    "@devvit/test": "0.12.14",
+    "vitest": "4.1.0"
   },
   "license": "0BSD"
 }
