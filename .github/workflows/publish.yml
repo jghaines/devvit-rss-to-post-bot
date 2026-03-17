@@ -1,0 +1,137 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - "env/playtest"
+      - "env/prod"
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: Target deployment environment
+        required: true
+        type: choice
+        options:
+          - playtest
+          - prod
+        default: playtest
+      bump_type:
+        description: Version bump for devvit upload
+        required: true
+        type: choice
+        options:
+          - prerelease
+          - patch
+          - minor
+          - major
+        default: prerelease
+      run_tests:
+        description: Run test suite before deployment
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && inputs.target_env || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.target_env || (github.ref_name == 'env/prod' && 'prod' || 'playtest') }}
+    env:
+      CI: true
+      DEPLOY_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.target_env || (github.ref_name == 'env/prod' && 'prod' || 'playtest') }}
+      BUMP_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.bump_type || (github.ref_name == 'env/prod' && 'patch' || 'prerelease') }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+        run: npm test
+
+      - name: Configure Devvit auth token
+        env:
+          DEVVIT_TOKEN_BASE64: ${{ secrets.DEVVIT_TOKEN_BASE64 }}
+          DEVVIT_TOKEN_JSON: ${{ secrets.DEVVIT_TOKEN_JSON }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${DEVVIT_TOKEN_BASE64}" ]; then
+            mkdir -p "${HOME}/.devvit"
+            printf '%s' "${DEVVIT_TOKEN_BASE64}" | base64 --decode > "${HOME}/.devvit/token"
+          elif [ -n "${DEVVIT_TOKEN_JSON}" ]; then
+            mkdir -p "${HOME}/.devvit"
+            printf '%s' "${DEVVIT_TOKEN_JSON}" > "${HOME}/.devvit/token"
+          else
+            echo "::error::Missing Devvit token. Set DEVVIT_TOKEN_BASE64 (preferred) or DEVVIT_TOKEN_JSON."
+            exit 1
+          fi
+
+          chmod 600 "${HOME}/.devvit/token"
+
+      - name: Upload Devvit app
+        id: upload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Deploy environment: ${DEPLOY_ENV}"
+          echo "Using bump type: ${BUMP_TYPE}"
+          npx --yes devvit upload --bump "${BUMP_TYPE}" | tee /tmp/devvit-upload.log
+
+          version="$(sed -nE 's/.*Uploading new version "?([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)"?.*/\1/p' /tmp/devvit-upload.log | tail -n1)"
+          if [ -z "${version}" ]; then
+            version="$(sed -nE 's/.*version[^0-9]*([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p' /tmp/devvit-upload.log | tail -n1)"
+          fi
+
+          if [ -z "${version}" ]; then
+            echo "::error::Could not determine uploaded Devvit version from CLI output."
+            echo "::group::devvit upload output"
+            cat /tmp/devvit-upload.log
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Uploaded Devvit version: ${version}"
+
+      - name: Create and push deployment tag
+        shell: bash
+        env:
+          VERSION: ${{ steps.upload.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="devvit/${DEPLOY_ENV}/v${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse --verify --quiet "refs/tags/${tag}" >/dev/null; then
+            existing_sha="$(git rev-list -n 1 "refs/tags/${tag}")"
+            if [ "${existing_sha}" = "${GITHUB_SHA}" ]; then
+              echo "Tag ${tag} already exists at this commit. Skipping."
+              exit 0
+            fi
+            echo "::error::Tag ${tag} already exists at ${existing_sha}."
+            exit 1
+          fi
+
+          git tag -a "${tag}" -m "Devvit ${DEPLOY_ENV} deployment ${VERSION}"
+          git push origin "refs/tags/${tag}"

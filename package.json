@@ -13,7 +13,8 @@
     "local:preview:env": "ENV_FILE=.env.test node scripts/local-preview.mjs",
     "local:live": "node scripts/local-poll.mjs --live",
     "devvit:playtest": "npx devvit playtest",
-    "devvit:upload": "npx devvit upload"
+    "devvit:upload": "npx devvit upload",
+    "release:prod": "npm test && node scripts/devvit-upload-and-tag.mjs"
   },
   "dependencies": {
     "@devvit/public-api": "0.12.14"
