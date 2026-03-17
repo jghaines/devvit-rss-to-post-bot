@@ -17,10 +17,10 @@
     "release:prod": "npm test && node scripts/devvit-upload-and-tag.mjs"
   },
   "dependencies": {
-    "@devvit/public-api": "0.12.14"
+    "@devvit/public-api": "0.12.15"
   },
   "devDependencies": {
-    "@devvit/test": "0.12.14",
+    "@devvit/test": "0.12.15",
     "vitest": "4.1.0"
   },
   "license": "0BSD"
