@@ -186,6 +186,12 @@ npm run release:prod
 
 This runs the test suite, executes `devvit upload`, parses the uploaded version from CLI output, creates `devvit/prod/v<version>`, and pushes that tag to `origin`.
 
+Important state distinction:
+
+- `devvit upload` creates the installable version and is the point where Reddit assigns the release version number.
+- `devvit publish` submits the uploaded version for review, but by default it remains unlisted.
+- `devvit publish --public` requests public listing. The app becomes public only after Reddit approves the review and lists it in the App Directory.
+
 If you need to pass extra flags through to `devvit upload`, append them after `--`:
 
 ```bash
@@ -208,6 +214,20 @@ npm run devvit:playtest
 ```
 
 Playtest versions are usually too noisy to tag automatically. If you explicitly want to preserve a particular pre-release, tag it manually after the playtest run.
+
+If you want to move an uploaded production version toward release visibility, do that as a separate manual step after `release:prod` succeeds:
+
+```bash
+npx devvit publish
+```
+
+For public listing, request it explicitly:
+
+```bash
+npx devvit publish --public
+```
+
+As of 2026-03-17, public listing is still a Reddit review step rather than something that happens automatically at upload time.
 
 ## Why we are not automating Devvit publish in GitHub Actions
 
