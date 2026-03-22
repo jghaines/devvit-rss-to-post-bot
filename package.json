@@ -14,7 +14,7 @@
     "local:live": "node scripts/local-poll.mjs --live",
     "devvit:playtest": "npx devvit playtest",
     "devvit:upload": "npx devvit upload",
-    "release:prod": "npm test && node scripts/devvit-upload-and-tag.mjs"
+    "release:prod": "npm test && node scripts/devvit-publish-and-tag.mjs"
   },
   "dependencies": {
     "@devvit/public-api": "0.12.15"

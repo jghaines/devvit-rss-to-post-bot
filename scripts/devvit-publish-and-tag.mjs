@@ -7,8 +7,8 @@ async function main() {
   ensureCleanWorktree();
 
   const commit = runCommand("git", ["rev-parse", "HEAD"]).stdout.trim();
-  const uploadArgs = process.argv.slice(2);
-  const upload = await runStreamingCommand("npx", ["devvit", "upload", ...uploadArgs]);
+  const publishArgs = process.argv.slice(2);
+  const upload = await runStreamingCommand("npx", ["devvit", "publish", ...publishArgs]);
 
   if (upload.code !== 0) {
     process.exit(upload.code ?? 1);

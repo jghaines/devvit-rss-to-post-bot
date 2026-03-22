@@ -16,7 +16,7 @@ on:
           - prod
         default: playtest
       bump_type:
-        description: Version bump for devvit upload
+        description: Version bump for devvit publish
         required: true
         type: choice
         options:
@@ -86,7 +86,7 @@ jobs:
 
           chmod 600 "${HOME}/.devvit/token"
 
-      - name: Upload Devvit app
+      - name: Deploy Devvit app
         id: upload
         shell: bash
         run: |
@@ -94,23 +94,31 @@ jobs:
 
           echo "Deploy environment: ${DEPLOY_ENV}"
           echo "Using bump type: ${BUMP_TYPE}"
-          npx --yes devvit upload --bump "${BUMP_TYPE}" | tee /tmp/devvit-upload.log
 
-          version="$(sed -nE 's/.*Uploading new version "?([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)"?.*/\1/p' /tmp/devvit-upload.log | tail -n1)"
+          if [ "${DEPLOY_ENV}" = "prod" ]; then
+            DEVVIT_CMD="publish"
+          else
+            DEVVIT_CMD="upload"
+          fi
+
+          echo "Using: devvit ${DEVVIT_CMD}"
+          npx --yes devvit "${DEVVIT_CMD}" --bump "${BUMP_TYPE}" | tee /tmp/devvit-deploy.log
+
+          version="$(sed -nE 's/.*Uploading new version "?([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)"?.*/\1/p' /tmp/devvit-deploy.log | tail -n1)"
           if [ -z "${version}" ]; then
-            version="$(sed -nE 's/.*version[^0-9]*([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p' /tmp/devvit-upload.log | tail -n1)"
+            version="$(sed -nE 's/.*version[^0-9]*([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?).*/\1/p' /tmp/devvit-deploy.log | tail -n1)"
           fi
 
           if [ -z "${version}" ]; then
-            echo "::error::Could not determine uploaded Devvit version from CLI output."
-            echo "::group::devvit upload output"
-            cat /tmp/devvit-upload.log
+            echo "::error::Could not determine Devvit version from CLI output."
+            echo "::group::devvit ${DEVVIT_CMD} output"
+            cat /tmp/devvit-deploy.log
             echo "::endgroup::"
             exit 1
           fi
 
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "Uploaded Devvit version: ${version}"
+          echo "Deployed Devvit version: ${version}"
 
       - name: Create and push deployment tag
         shell: bash

@@ -184,21 +184,21 @@ This starts a playtest session and Devvit creates pre-release versions with a fo
 npm run release:prod
 ```
 
-This runs the test suite, executes `devvit upload`, parses the uploaded version from CLI output, creates `devvit/prod/v<version>`, and pushes that tag to `origin`.
+This runs the test suite, executes `devvit publish`, parses the version from CLI output, creates `devvit/prod/v<version>`, and pushes that tag to `origin`.
 
 Important state distinction:
 
-- `devvit upload` creates the installable version and is the point where Reddit assigns the release version number.
-- `devvit publish` submits the uploaded version for review, but by default it remains unlisted.
-- `devvit publish --public` requests public listing. The app becomes public only after Reddit approves the review and lists it in the App Directory.
+- `devvit upload` uploads a private/testing version, installable only on small subreddits (<200 subscribers).
+- `devvit publish` creates a production release (unlisted by default, installable via direct link).
+- `devvit publish --public` requests public listing in the App Directory (requires Reddit review).
 
-If you need to pass extra flags through to `devvit upload`, append them after `--`:
+If you need to pass extra flags through to `devvit publish`, append them after `--`:
 
 ```bash
 npm run release:prod -- --bump patch
 ```
 
-If the upload succeeds but the helper cannot determine the version, it stops before tagging so you can tag the release manually using the version printed by Devvit CLI.
+If the publish succeeds but the helper cannot determine the version, it stops before tagging so you can tag the release manually using the version printed by Devvit CLI.
 
 Manual fallback if needed:
 
