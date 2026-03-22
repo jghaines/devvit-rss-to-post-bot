@@ -16,7 +16,16 @@ const JOB_NAME = "poll-rss-feed";
 Devvit.configure({
   redis: true,
   http: {
-    domains: ["feeds.simplecast.com"],
+    domains: [
+      "feeds.acast.com",
+      "feeds.megaphone.fm",
+      "feeds.npr.org",
+      "feeds.simplecast.com",
+      "rss.buzzsprout.com",
+      "www.omnycontent.com",
+      "www.relay.fm",
+      "www.theguardian.com"
+    ],
   },
   redditAPI: true,
   scheduler: true,
