@@ -1,5 +1,4 @@
 node_modules/
-devvit.json
 .env
 .env.local
 .local-state.json

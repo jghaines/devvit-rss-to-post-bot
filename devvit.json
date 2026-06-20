@@ -1,0 +1,32 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "rss-post-bot",
+  "blocks": {
+    "entry": "src/main.js",
+    "triggers": [
+      "onAppInstall",
+      "onAppUpgrade"
+    ]
+  },
+  "permissions": {
+    "http": {
+      "enable": true,
+      "domains": [
+        "feeds.acast.com",
+        "feeds.megaphone.fm",
+        "feeds.npr.org",
+        "feeds.simplecast.com",
+        "rss.buzzsprout.com",
+        "www.omnycontent.com",
+        "www.relay.fm",
+        "www.swr.de",
+        "www.theguardian.com"
+      ]
+    },
+    "redis": true,
+    "reddit": true
+  },
+  "dev": {
+    "subreddit": "hardforkrssbot_dev"
+  }
+}
