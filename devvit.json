@@ -20,7 +20,8 @@
         "www.omnycontent.com",
         "www.relay.fm",
         "www.swr.de",
-        "www.theguardian.com"
+        "www.theguardian.com",
+        "thecleanpaper.com"
       ]
     },
     "redis": true,
