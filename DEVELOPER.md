@@ -8,12 +8,22 @@ It tracks the "last post" checkpoint plus a dedupe window so feed reorder/edit n
 
 ## Project layout
 
-- `src/main.js`: Devvit app entrypoint (scheduler + Reddit submit + Redis-backed state)
+- `src/server/index.js`: Devvit Web server entrypoint (`createServer` + listen)
+- `src/server/handlers.mjs`: internal HTTP handlers — scheduler poll job + install/upgrade triggers (Reddit submit + Redis-backed state)
+- `src/core/schedule.mjs`: poll-interval cron + settings-normalization helpers (unit tested)
 - `src/core/bot-core.mjs`: pure posting/checkpoint logic (unit tested)
 - `src/core/rss-parse.mjs`: RSS/Atom parser
 - `src/core/post-render.mjs`: title/body rendering and HTML->Reddit Markdown conversion
 - `scripts/local-poll.mjs`: local CLI harness for dry-run or live submission
+- `tools/build.mjs`: esbuild bundle of the server entry to `dist/server/index.cjs` (CommonJS, required by Devvit Web)
 - `tests/*.test.mjs`: local tests
+
+The app runs on **Devvit Web** (`@devvit/web`). All configuration — server entry, event triggers, the `poll-rss-feed` scheduler task, and installation settings — lives in `devvit.json`. The Devvit CLI runs `npm run build` (via `devvit.json` `scripts`) to bundle the server before `playtest`/`upload`.
+
+## Deployment account
+
+> **This app is owned and deployed by the Reddit account `hardforkbot`.**
+> Every `npx devvit login` step below must authenticate as `hardforkbot` — playtest, upload, and publish all require it. If `devvit login` reports `Logged in as <someone-else>`, run `npx devvit logout` and log back in as `hardforkbot` before continuing, otherwise the CLI will target the wrong owner's app.
 
 ## Local setup
 
@@ -86,7 +96,7 @@ npm run local:preview -- --json
 
 ## .env credential injection
 
-For local live submit testing (`npm run local:live`), authenticate with Devvit CLI:
+For local live submit testing (`npm run local:live`), authenticate with Devvit CLI as `hardforkbot`:
 
 ```bash
 npx devvit login
@@ -114,16 +124,16 @@ Install dependencies:
 npm install
 ```
 
-Authenticate with Reddit through Devvit CLI:
+Authenticate with Reddit through Devvit CLI as the `hardforkbot` account:
 
 ```bash
 npx devvit login
 ```
 
-The login flow opens a Reddit auth URL in your browser. After approval, you should see output like:
+The login flow opens a Reddit auth URL in your browser. Sign in as `hardforkbot` when prompted. After approval, you should see output like:
 
 - `Your Devvit authentication token has been saved to /Users/<you>/.devvit/token`
-- `Logged in as <your_reddit_username>`
+- `Logged in as hardforkbot`
 
 Then run:
 
@@ -164,7 +174,7 @@ npm ci
 npm test
 ```
 
-1. Authenticate with Devvit CLI:
+1. Authenticate with Devvit CLI as `hardforkbot` (confirm the CLI prints `Logged in as hardforkbot`):
 
 ```bash
 npx devvit login
@@ -260,7 +270,7 @@ Use this when you want to post feed entries into a real subreddit (`r/<name>`) r
 
 ### Option A: local CLI (single run)
 
-1. Authenticate once with Devvit CLI:
+1. Authenticate once with Devvit CLI as `hardforkbot`:
 
 ```bash
 npx devvit login
@@ -322,7 +332,7 @@ MAX_POSTS_PER_RUN=1 \
 npm run local:preview
 ```
 
-Submit a real self-post to Reddit (uses `~/.devvit/token` from Devvit CLI login):
+Submit a real self-post to Reddit (uses `~/.devvit/token` from the `hardforkbot` Devvit CLI login):
 
 ```bash
 POST_KIND=self \

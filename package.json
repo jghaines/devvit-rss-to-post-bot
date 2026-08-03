@@ -12,16 +12,23 @@
     "local:preview": "node scripts/local-preview.mjs",
     "local:preview:env": "ENV_FILE=.env.test node scripts/local-preview.mjs",
     "local:live": "node scripts/local-poll.mjs --live",
+    "build": "node tools/build.mjs",
     "devvit:playtest": "npx devvit playtest",
     "devvit:upload": "npx devvit upload",
     "release:prod": "npm test && node scripts/devvit-publish-and-tag.mjs"
   },
   "dependencies": {
-    "@devvit/public-api": "0.13.3"
+    "@devvit/reddit": "0.13.10",
+    "@devvit/redis": "0.13.10",
+    "@devvit/scheduler": "0.13.10",
+    "@devvit/server": "0.13.10",
+    "@devvit/settings": "0.13.10",
+    "@devvit/web": "0.13.10"
   },
   "devDependencies": {
-    "@devvit/test": "0.13.3",
-    "vitest": "4.1.8"
+    "devvit": "0.13.10",
+    "esbuild": "0.28.1",
+    "vitest": "4.1.10"
   },
   "license": "0BSD"
 }
