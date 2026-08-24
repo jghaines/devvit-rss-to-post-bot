@@ -60,13 +60,13 @@
         "feeds.megaphone.fm",
         "feeds.npr.org",
         "feeds.simplecast.com",
+        "mondoweiss.net",
         "rss.buzzsprout.com",
-        "www.omnycontent.com",
         "thecleanpaper.com",
+        "www.omnycontent.com",
         "www.relay.fm",
         "www.swr.de",
         "www.theguardian.com"
-        "mondoweiss.net"
       ]
     },
     "redis": true,
