@@ -13,6 +13,7 @@
     "local:preview:env": "ENV_FILE=.env.test node scripts/local-preview.mjs",
     "local:live": "node scripts/local-poll.mjs --live",
     "build": "node tools/build.mjs",
+    "sync:readme": "node scripts/sync-readme-domains.mjs",
     "devvit:playtest": "npx devvit playtest",
     "devvit:upload": "npx devvit upload",
     "release:prod": "npm test && node scripts/devvit-publish-and-tag.mjs"

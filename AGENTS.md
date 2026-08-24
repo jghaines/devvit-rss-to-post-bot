@@ -38,5 +38,12 @@ Import `reddit`, `redis`, `scheduler`, and `settings` from their individual
 ## Fetch domains
 
 The `http.domains` allowlist in `devvit.json` is the source of truth for which hostnames
-the app may fetch. Whenever you add, remove, or change an entry there, update the
-`Fetch Domains` list in `README.md` to match in the same change.
+the app may fetch. Whenever you add, remove, or change an entry there, regenerate the
+`Fetch Domains` list in `README.md` in the same change:
+
+```bash
+npm run sync:readme
+```
+
+Do not hand-edit the README list. `tests/devvit-config.test.mjs` fails if `devvit.json`
+does not parse as JSON, or if the README list drifts from `permissions.http.domains`.

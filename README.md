@@ -56,14 +56,15 @@ This app currently fetches from:
 - `feeds.megaphone.fm`
 - `feeds.npr.org`
 - `feeds.simplecast.com`
+- `mondoweiss.net`
 - `rss.buzzsprout.com`
-- `www.omnycontent.com`
 - `thecleanpaper.com`
+- `www.omnycontent.com`
 - `www.relay.fm`
 - `www.swr.de`
 - `www.theguardian.com`
 
-This list must stay in sync with the `http.domains` array in [`devvit.json`](./devvit.json).
+This list is generated from the `permissions.http.domains` array in [`devvit.json`](./devvit.json) by `npm run sync:readme`. Do not edit it by hand; `npm test` fails if the two drift apart.
 
 ## Developer documentation
 

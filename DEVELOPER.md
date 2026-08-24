@@ -259,6 +259,14 @@ Before upload, verify `devvit-rss-to-post-bot/devvit.json`:
 - `name` is globally unique and at most 16 characters
 - `permissions.http.domains` includes your RSS host (exact hostname, no protocol)
 
+`devvit.json` is the source of truth for fetch domains. After editing `permissions.http.domains`, regenerate the public list in `README.md`:
+
+```bash
+npm run sync:readme
+```
+
+`tests/devvit-config.test.mjs` fails if `devvit.json` does not parse as JSON, or if the README list drifts from `permissions.http.domains` — so a forgotten sync is caught by `npm test` (and therefore by `release:prod`, which runs the suite before publishing).
+
 Set runtime values after install/playtest in app installation settings:
 
 - `feedUrl`
