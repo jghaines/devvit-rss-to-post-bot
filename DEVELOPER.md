@@ -194,13 +194,21 @@ This starts a playtest session and Devvit creates pre-release versions with a fo
 npm run release:prod
 ```
 
-This runs the test suite, executes `devvit publish`, parses the version from CLI output, creates `devvit/prod/v<version>`, and pushes that tag to `origin`.
+This runs the test suite, executes `devvit publish --public`, parses the version from CLI output, creates `devvit/prod/v<version>`, and pushes that tag to `origin`.
 
 Important state distinction:
 
 - `devvit upload` uploads a private/testing version, installable only on small subreddits (<200 subscribers).
 - `devvit publish` creates a production release (unlisted by default, installable via direct link).
 - `devvit publish --public` requests public listing in the App Directory (requires Reddit review).
+
+`release:prod` adds `--public` by default, so every production release requests App Directory listing. To cut an unlisted release instead, pass `--no-public`:
+
+```bash
+npm run release:prod -- --no-public
+```
+
+That flag is handled by `scripts/devvit-publish-and-tag.mjs` (it is stripped before the CLI runs), so the unlisted path still gets the test run, clean-worktree check, and `devvit/prod/v<version>` tag.
 
 If you need to pass extra flags through to `devvit publish`, append them after `--`:
 
@@ -225,19 +233,13 @@ npm run devvit:playtest
 
 Playtest versions are usually too noisy to tag automatically. If you explicitly want to preserve a particular pre-release, tag it manually after the playtest run.
 
-If you want to move an uploaded production version toward release visibility, do that as a separate manual step after `release:prod` succeeds:
-
-```bash
-npx devvit publish
-```
-
-For public listing, request it explicitly:
+If you cut an unlisted release with `--no-public` and later want to request App Directory listing for it, do that as a separate manual step:
 
 ```bash
 npx devvit publish --public
 ```
 
-As of 2026-03-17, public listing is still a Reddit review step rather than something that happens automatically at upload time.
+As of 2026-03-17, public listing is still a Reddit review step rather than something that happens automatically at publish time — `--public` submits the request, it does not make the app public by itself.
 
 ## Why we are not automating Devvit publish in GitHub Actions
 

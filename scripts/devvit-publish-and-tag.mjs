@@ -7,7 +7,7 @@ async function main() {
   ensureCleanWorktree();
 
   const commit = runCommand("git", ["rev-parse", "HEAD"]).stdout.trim();
-  const publishArgs = process.argv.slice(2);
+  const publishArgs = resolvePublishArgs(process.argv.slice(2));
   const upload = await runStreamingCommand("npx", ["devvit", "publish", ...publishArgs]);
 
   if (upload.code !== 0) {
@@ -40,6 +40,14 @@ async function main() {
   runCommand("git", ["push", "origin", `refs/tags/${tag}`]);
 
   console.log(`Created and pushed ${tag}`);
+}
+
+function resolvePublishArgs(args) {
+  const publishArgs = args.filter((arg) => arg !== "--no-public");
+  if (args.includes("--no-public")) {
+    return publishArgs.filter((arg) => arg !== "--public");
+  }
+  return publishArgs.includes("--public") ? publishArgs : [...publishArgs, "--public"];
 }
 
 function ensureCleanWorktree() {

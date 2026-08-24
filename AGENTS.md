@@ -19,8 +19,9 @@ Publishing requires a clean git state (no uncommitted or untracked changes).
 4. Then publish
 
 Prefer `npm run release:prod` for production releases. It runs `npm test`, then
-`scripts/devvit-publish-and-tag.mjs`, which enforces a clean worktree, publishes,
-and creates + pushes a `devvit/prod/v<version>` git tag.
+`scripts/devvit-publish-and-tag.mjs`, which enforces a clean worktree, publishes
+with `--public` (App Directory listing request; pass `--no-public` to cut an
+unlisted release), and creates + pushes a `devvit/prod/v<version>` git tag.
 
 **`devvit upload` and `devvit publish` are NOT dry-runs.** The 0.13.x CLI runs
 straight through build → version-bump → upload/publish with no confirmation prompt,
