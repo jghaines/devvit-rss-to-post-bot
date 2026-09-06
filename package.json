@@ -19,17 +19,17 @@
     "release:prod": "npm test && node scripts/devvit-publish-and-tag.mjs"
   },
   "dependencies": {
-    "@devvit/reddit": "0.14.1",
-    "@devvit/redis": "0.14.1",
-    "@devvit/scheduler": "0.14.1",
-    "@devvit/server": "0.14.1",
-    "@devvit/settings": "0.14.1",
-    "@devvit/web": "0.14.1"
+    "@devvit/reddit": "0.14.2",
+    "@devvit/redis": "0.14.2",
+    "@devvit/scheduler": "0.14.2",
+    "@devvit/server": "0.14.2",
+    "@devvit/settings": "0.14.2",
+    "@devvit/web": "0.14.2"
   },
   "devDependencies": {
-    "devvit": "0.14.1",
+    "devvit": "0.14.2",
     "esbuild": "0.28.2",
-    "vitest": "4.1.11"
+    "vitest": "5.0.0"
   },
   "license": "0BSD"
 }
