@@ -52,6 +52,7 @@ When you hit a domain exception:
 
 This app currently fetches from:
 
+- `civ.plus`
 - `feeds.acast.com`
 - `feeds.megaphone.fm`
 - `feeds.npr.org`
